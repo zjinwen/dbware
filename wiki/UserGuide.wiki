@@ -1,3 +1,4 @@
+   用户指南 配置说明：
 dbServer.xml 是一个完全的c3p0配置文件。主要实现dbware对后端数据库服务器连接。
  如：
         <named-config name="master">
