@@ -9,7 +9,7 @@ dbServer.xml 是一个完全的c3p0配置文件。主要实现dbware对后端数
         </named-config>
  配置方式与c3p0 完全一致，看默认配置应该可以轻松了解。
 
-dbRule.xml 是 在dbServer.xml配置的基础上，定义各个库的规则。####
+dbRule.xml 是 在dbServer.xml配置的基础上，定义各个库的规则。
  节点master 定义主库，也就是写的库（目前只实现一个库的写入，以后我考虑加入分片的功能）
  节点slave  定义备库，也就是读的库，规则 为  名字（dbServer.xml中named-config定义的name名字）* weight（权重）
  如：<slave>slave1*3,slave2</slave>  就是以3:1的比率从分别slave1slave2读取数据。
