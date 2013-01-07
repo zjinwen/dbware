@@ -1,0 +1,20 @@
+新增功能：
+1，实现对备库可动态扩容，而不需要重启服务器。
+2，实现对日志记录可以动态修改，不需要重启服务器。
+
+备库扩容方法：
+1，先在dbServer.xml中配置数据源：如：
+        <named-config name="slave3">
+                <property name="driverClass">com.mysql.jdbc.Driver</property>
+                <property name="jdbcUrl">jdbc:mysql://127.0.0.1:3306/wuxiaodong</property>
+                <property name="user">root</property>
+                <property name="password">123456</property>
+        </named-config>
+
+2，在dbRule.xml的节点slave中加入该数据源名称slave3，如：<slave>slave1*3,slave2,slave3*2</slave>
+
+这样就完成扩容。一般在5分钟内生效。
+
+
+日志记录可以动态修改：
+只需按您的需要正常修改dbware.xml中节点general_log，slowSql的值即可生效。
