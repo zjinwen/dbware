@@ -1,0 +1,195 @@
+> 用户指南 配置说明：
+dbServer.xml 是一个完全的c3p0配置文件。主要实现dbware对后端数据库服务器连接。
+> 如：
+> > 
+
+&lt;named-config name="master"&gt;
+
+
+> > > 
+
+&lt;property name="driverClass"&gt;
+
+com.mysql.jdbc.Driver
+
+&lt;/property&gt;
+
+
+> > > 
+
+&lt;property name="jdbcUrl"&gt;
+
+jdbc:mysql://127.0.0.1:3306/wuxiaodong
+
+&lt;/property&gt;
+
+
+> > > 
+
+&lt;property name="user"&gt;
+
+root
+
+&lt;/property&gt;
+
+
+> > > 
+
+&lt;property name="password"&gt;
+
+123456
+
+&lt;/property&gt;
+
+
+
+> > 
+
+&lt;/named-config&gt;
+
+
+
+> 配置方式与c3p0 完全一致，看默认配置应该可以轻松了解。
+
+dbRule.xml 是 在dbServer.xml配置的基础上，定义各个库的规则。
+
+> 节点master 定义主库，也就是写的库（目前只实现一个库的写入，以后我考虑加入分片的功能）
+
+> 节点slave  定义备库，也就是读的库，规则 为  名字（dbServer.xml中named-config定义的name名字）**weight（权重）
+> 如：**
+
+&lt;slave&gt;
+
+slave1\*3,slave2
+
+&lt;/slave&gt;
+
+  就是以3:1的比率从分别slave1slave2读取数据。
+
+> 节点loadbalance 为轮询规则。目前只实现了加权轮询。（其他规则还要考虑其实用性，如果确实有这种规则需求，我会在后面版本实现它）
+
+> 节点batchDml  为批处理优化。目前尚未实现。
+
+dbware.xml 为基本配置
+> 节点 username，password 定义 客户端 连接dbware的用户名密码。
+> 节点 port 为 dbware 监听的端口。
+> 节点 maxConnections 为 dbware 可以支持的最大连接数
+> 节点characterSet 定为编码
+> 节点bindAddress 定义绑定的IP段或单个访问地址。如：
+> 
+
+&lt;bindAddress&gt;
+
+192.168.0.9
+
+&lt;/bindAddress&gt;
+
+ 就限制了只有192.168.0.9可以连接dbware
+> 
+
+&lt;bindAddress&gt;
+
+100.0.0.0/8
+
+&lt;/bindAddress&gt;
+
+ 就限制了只有100段的ip可以访问。
+> 
+
+&lt;bindAddress&gt;
+
+100.101.0.0/16
+
+&lt;/bindAddress&gt;
+
+ 就限制了只有100.101段的ip可以访问。
+> 
+
+&lt;bindAddress&gt;
+
+100.101.1.0/24
+
+&lt;/bindAddress&gt;
+
+ 就限制了只有100.101.1段的ip可以访问。
+> 
+
+&lt;bindAddress&gt;
+
+0.0.0.0
+
+&lt;/bindAddress&gt;
+
+ 表示无限制
+> 节点 slowSql 定义慢查询的时间(单位为秒)。如果值为0，则视为不开启慢查询功能。
+> 节点general\_log 定义是否开启记录所有查询SQL。0为关闭，1为开启。默认为关闭
+
+dbwareLog.cnf 为日志配置，是完全的log4j日志配置文件。
+> 如无需要修改，完全可以使用默认配置。
+
+dbfilter  为过滤配置
+> 说明:为什么要有过滤？由于部分业务的及时性特征,不能从slave库中做查询。故实现了这个功能，
+> 如果没有这个业务需求，可以不理会这个配置。
+> 节点table 定义只能从主库读取的表，如果有多个定义表，则加多个<table>节点<br>
+<blockquote>如：<table>t_user</table><table>t_email</table>
+节点sql  定义只能从主库读取的sql语句。需要说明的是<br>
+sql 不需要加上SQL语句的条件部分，即where部分以及后面其他如order、group等都不需要加上。<br>
+如：过滤 select id,name,register_time from user where id>1000 order by id  那么只需要定义<br>
+<blockquote>
+
+<sql>
+
+select id,name,register_time from user<br>
+<br>
+</sql><br>
+<br>
+<br>
+</blockquote>如果有多个过滤sql，那么只需要加上多个相应的sql标签<br>
+注意：如果sql中使用了别名 如 ：select u.id,u.name,u.register_time from user u 与<br>
+select us.id,us.name,us.register_time from user us 这里视为不同的SQL。dbware并不做sql的语义分析。</blockquote>
+
+日志文件说明：<br>
+<blockquote>日志是按天分文件<br>
+dbware.log 为 dbware 的基本日志文件。默认关闭。<br>
+generalSql.log 为  dbware.xml 中 <br>
+<br>
+<general_log><br>
+<br>
+1<br>
+<br>
+</general_log><br>
+<br>
+ 时，记录查询SQL的文件。<br>
+slowSql.log 为 dbware.xml 中 slowSql节点值大于0时，记录相应慢查询的日志文件。<br>
+monitor.log 为 slave 库down时 的监控日志。</blockquote>
+
+dbware 如何启动?<br>
+<blockquote>sbin文件夹中有shell操作脚本。dbwareStart.sh为开启的脚本。dbwareStop.sh为结束dbware进程的脚本。<br>
+dbware 运行在JVM上。所以需先安装好jdk。并配置环境变量JAVA_HOME或者修改dbwareStart.sh中<br>
+JAVA_HOME="$JAVA_HOME" 的JAVA_HOME的值为jdk的安装目录：如：<br>
+JAVA_HOME="/usr/local/jdk1.7.0_10"<br>
+如何检测linux环境中有没有配置JAVA_HOME环境变量？执行 echo $JAVA_HOME 看是否有输出$JAVA_HOME的值，<br>
+为空则说明没有配置。</blockquote>
+
+使用建议：<br>
+<blockquote>出于性能与系统资源的考虑，几个有影响的地方在说明一下<br>
+dbware.xml 中<br>
+<br>
+<general_log><br>
+<br>
+0<br>
+<br>
+</general_log><br>
+<br>
+默认0关闭，如无需要，可以使用默认值。<br>
+dbware.xml 中<br>
+<br>
+<slowSql><br>
+<br>
+0<br>
+<br>
+</slowSql><br>
+<br>
+  默认0，不记录慢查询。如无需要，可以使用默认值。<br>
+dbfilter.xml 过滤配置文件。如无需要，建议不配置过滤table或sql。<br>
+其他地方就根据实际系统环境与业务需要配置，dbware占用资源并不大，建议jvm内存分配不要太大，可参考默认配置。
